@@ -14,7 +14,6 @@
 */
 
 using System;
-using System.IO;
 using QuantConnect.Configuration;
 using QuantConnect.Logging;
 using QuantConnect.Util;
@@ -32,16 +31,25 @@ namespace QuantConnect.DataProcessing
         /// <returns>Exit code. 0 equals successful, and any other value indicates the downloader/converter failed.</returns>
         public static void Main()
         {
+            Config.Set("data-folder", "C:\\Users\\Alex\\LeanCLI\\data");
+            Config.Set("processing-start-date", "20180101");
+
             // Get the config values first before running. These values are set for us
             // automatically to the value set on the website when defining this data type
-            var destinationDirectory = Path.Combine(
+            var destinationDirectory = System.IO.Path.Combine(
                 Config.Get("temp-output-directory", "/temp-output-directory"),
                 "alternative");
-            var processedDataDirectory = Path.Combine(
+            var processedDataDirectory = System.IO.Path.Combine(
                 Config.Get("processed-data-directory", Globals.DataFolder),
                 "alternative");
-            var processingDateValue = Config.Get("processing-date", Environment.GetEnvironmentVariable("QC_DATAFLEET_DEPLOYMENT_DATE"));
-            var processingDate = Parse.DateTimeExact(processingDateValue, "yyyyMMdd");
+            processedDataDirectory = destinationDirectory;
+
+            var processingEndDateValue = Config.Get("processing-end-date", Environment.GetEnvironmentVariable("QC_DATAFLEET_DEPLOYMENT_DATE"));
+            processingEndDateValue ??= DateTime.Today.ToString("yyyyMMdd");
+            var processingEndDate = Parse.DateTimeExact(processingEndDateValue, "yyyyMMdd");
+
+            var processingStartDateValue = Config.Get("processing-start-date", processingEndDateValue);
+            var processingStartDate = Parse.DateTimeExact(processingStartDateValue, "yyyyMMdd");
 
             QuiverInsiderTradingDataDownloader instance = null;
             try
@@ -60,7 +68,7 @@ namespace QuantConnect.DataProcessing
             try
             {
                 // Run the data downloader/converter.
-                var success = instance.Run(processingDate);
+                var success = instance.Run(processingStartDate, processingEndDate);
                 if (!success)
                 {
                     Log.Error($"QuantConnect.DataProcessing.Program.Main(): Failed to download/process {QuiverInsiderTradingDataDownloader.VendorName} {QuiverInsiderTradingDataDownloader.VendorDataName} data");

@@ -84,6 +84,24 @@ namespace QuantConnect.DataProcessing
         /// <summary>
         /// Runs the instance of the object with a given date.
         /// </summary>
+        /// <param name="processingStartDate">First date of data to be fetched and processed</param>
+        /// <param name="processingEndDate">Last date of data to be fetched and processed</param>
+        /// <returns>True if process last downloads successfully</returns>
+        public bool Run(DateTime processingStartDate, DateTime processingEndDate)
+        {
+            var success = false;
+            
+            for (var processDate= processingStartDate; processDate<= processingEndDate; processDate = processDate.AddDays(1))
+            {
+                success = Run(processDate);
+            }
+
+            return success;
+        }
+
+        /// <summary>
+        /// Runs the instance of the object with a given date.
+        /// </summary>
         /// <param name="processDate">The date of data to be fetched and processed</param>
         /// <returns>True if process all downloads successfully</returns>
         public bool Run(DateTime processDate)
@@ -121,6 +139,9 @@ namespace QuantConnect.DataProcessing
                     if (ticker == null) continue;
 
                     ticker = ticker.Split(':').Last().Replace("\"", string.Empty).ToUpperInvariant().Trim();
+                    var sid = SecurityIdentifier.GenerateEquity(ticker, Market.USA, true, mapFileProvider, processDate);
+
+                    if (sid.Date == Time.BeginningOfTime) continue;
 
                     if (!insiderTradingByTicker.TryGetValue(ticker, out var _))
                     {
@@ -130,7 +151,6 @@ namespace QuantConnect.DataProcessing
                     var curRow = $"{insiderTrade.Name.Replace(",", string.Empty).Trim().ToLower()},{insiderTrade.Shares},{insiderTrade.PricePerShare},{insiderTrade.SharesOwnedFollowing}";
                     insiderTradingByTicker[ticker].Add($"{processDate:yyyyMMdd},{curRow}");
 
-                    var sid = SecurityIdentifier.GenerateEquity(ticker, Market.USA, true, mapFileProvider, processDate);
                     universeCsvContents.Add($"{sid},{ticker},{curRow}");
                 }
 
@@ -138,7 +158,7 @@ namespace QuantConnect.DataProcessing
                 {
                     return false;
                 }
-                else if (universeCsvContents.Any())
+                if (universeCsvContents.Any())
                 {
                     SaveContentToFile(_universeFolder, $"{processDate:yyyyMMdd}", universeCsvContents);
                 }
