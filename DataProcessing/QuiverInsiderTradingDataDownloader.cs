@@ -76,7 +76,7 @@ namespace QuantConnect.DataProcessing
             _canCreateUniverseFiles = Directory.Exists(Path.Combine(Globals.DataFolder, "equity", "usa", "map_files"));
 
             // Represents rate limits of 10 requests per 1.1 second
-            _indexGate = new RateGate(1, TimeSpan.FromSeconds(2));
+            _indexGate = new RateGate(2, TimeSpan.FromSeconds(1));
 
             Directory.CreateDirectory(_universeFolder);
         }
@@ -135,10 +135,15 @@ namespace QuantConnect.DataProcessing
 
                 foreach (var insiderTrade in insiderTradingByDate)
                 {
-                    var ticker = insiderTrade.Ticker;
-                    if (ticker == null) continue;
+                    var quiverTicker = insiderTrade.Ticker;
+                    if (quiverTicker == null) continue;
 
-                    ticker = ticker.Split(':').Last().Replace("\"", string.Empty).ToUpperInvariant().Trim();
+                    if (!TryNormalizeDefunctTicker(quiverTicker, out var ticker))
+                    {
+                        Log.Error(
+                            $"QuiverInsiderTradingDataDownloader(): Defunct ticker {quiverTicker} is unable to be parsed. Continuing...");
+                        continue;
+                    }
                     var sid = SecurityIdentifier.GenerateEquity(ticker, Market.USA, true, mapFileProvider, processDate);
 
                     if (sid.Date == Time.BeginningOfTime) continue;
@@ -271,6 +276,40 @@ namespace QuantConnect.DataProcessing
                     CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal));
 
             File.WriteAllLines(finalPath, finalLines);
+        }
+
+        /// <summary>
+        /// Tries to normalize a potentially defunct ticker into a normal ticker.
+        /// </summary>
+        /// <param name="rawTicker">Ticker as received from Estimize</param>
+        /// <param name="nonDefunctTicker">Set as the non-defunct ticker</param>
+        /// <returns>true for success, false for failure</returns>
+        private static bool TryNormalizeDefunctTicker(string rawTicker, out string nonDefunctTicker)
+        {
+            ticker = rawTicker.Split(':').Last().Replace("\"", string.Empty).ToUpperInvariant().Trim();
+            // The "defunct" indicator can be in any capitalization/case
+            if (ticker.IndexOf("defunct", StringComparison.OrdinalIgnoreCase) > 0)
+            {
+                foreach (var delimChar in _defunctDelimiters)
+                {
+                    var length = ticker.IndexOf(delimChar);
+
+                    // Continue until we exhaust all delimiters
+                    if (length == -1)
+                    {
+                        continue;
+                    }
+
+                    nonDefunctTicker = ticker.Substring(0, length).Trim();
+                    return true;
+                }
+
+                nonDefunctTicker = string.Empty;
+                return false;
+            }
+
+            nonDefunctTicker = ticker;
+            return true;
         }
 
         private class RawInsiderTrading : QuiverInsiderTrading

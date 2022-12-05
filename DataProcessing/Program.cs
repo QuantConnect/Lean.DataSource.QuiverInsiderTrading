@@ -31,8 +31,7 @@ namespace QuantConnect.DataProcessing
         /// <returns>Exit code. 0 equals successful, and any other value indicates the downloader/converter failed.</returns>
         public static void Main()
         {
-            Config.Set("data-folder", "C:\\Users\\Alex\\LeanCLI\\data");
-            Config.Set("processing-start-date", "20180101");
+            Config.Set("processing-start-date", "20140101");
 
             // Get the config values first before running. These values are set for us
             // automatically to the value set on the website when defining this data type
