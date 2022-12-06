@@ -31,8 +31,6 @@ namespace QuantConnect.DataProcessing
         /// <returns>Exit code. 0 equals successful, and any other value indicates the downloader/converter failed.</returns>
         public static void Main()
         {
-            Config.Set("processing-start-date", "20140101");
-
             // Get the config values first before running. These values are set for us
             // automatically to the value set on the website when defining this data type
             var destinationDirectory = System.IO.Path.Combine(
@@ -47,7 +45,8 @@ namespace QuantConnect.DataProcessing
             processingEndDateValue ??= DateTime.Today.ToString("yyyyMMdd");
             var processingEndDate = Parse.DateTimeExact(processingEndDateValue, "yyyyMMdd");
 
-            var processingStartDateValue = Config.Get("processing-start-date", processingEndDateValue);
+            var processingStartDateValue = Config.Get("processing-start-date", Environment.GetEnvironmentVariable("QUIVER_INSIDER_START_DATE"));
+            processingEndDateValue ??= DateTime.Today.ToString("yyyyMMdd");
             var processingStartDate = Parse.DateTimeExact(processingStartDateValue, "yyyyMMdd");
 
             QuiverInsiderTradingDataDownloader instance = null;
