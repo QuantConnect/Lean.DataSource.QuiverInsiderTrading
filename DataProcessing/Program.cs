@@ -47,7 +47,7 @@ namespace QuantConnect.DataProcessing
             var processingEndDate = Parse.DateTimeExact(processingEndDateValue, "yyyyMMdd");
 
             var processingStartDateValue = Config.Get("processing-start-date", Environment.GetEnvironmentVariable("QUIVER_INSIDER_START_DATE"));
-            processingEndDateValue ??= DateTime.Today.ToString("yyyyMMdd");
+            processingStartDateValue ??= DateTime.Today.ToString("yyyyMMdd");
             var processingStartDate = Parse.DateTimeExact(processingStartDateValue, "yyyyMMdd");
 
             QuiverInsiderTradingDataDownloader instance = null;
