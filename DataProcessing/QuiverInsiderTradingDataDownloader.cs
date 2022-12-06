@@ -49,6 +49,13 @@ namespace QuantConnect.DataProcessing
         private readonly bool _canCreateUniverseFiles;
         private readonly string _clientKey;
         private readonly int _maxRetries = 5;
+        private static readonly List<char> _defunctDelimiters = new()
+        {
+            '-',
+            '_',
+            '+',
+            '|'
+        };
 
         private readonly JsonSerializerSettings _jsonSerializerSettings = new ()
         {
@@ -146,7 +153,7 @@ namespace QuantConnect.DataProcessing
                     }
                     var sid = SecurityIdentifier.GenerateEquity(ticker, Market.USA, true, mapFileProvider, processDate);
 
-                    if (sid.Date == Time.BeginningOfTime) continue;
+                    if (sid.Date == Time.BeginningOfTime || sid.ToString().Contains(" 2T")) continue;
 
                     if (!insiderTradingByTicker.TryGetValue(ticker, out var _))
                     {
@@ -286,7 +293,7 @@ namespace QuantConnect.DataProcessing
         /// <returns>true for success, false for failure</returns>
         private static bool TryNormalizeDefunctTicker(string rawTicker, out string nonDefunctTicker)
         {
-            ticker = rawTicker.Split(':').Last().Replace("\"", string.Empty).ToUpperInvariant().Trim();
+            var ticker = rawTicker.Split(':').Last().Replace("\"", string.Empty).ToUpperInvariant().Trim();
             // The "defunct" indicator can be in any capitalization/case
             if (ticker.IndexOf("defunct", StringComparison.OrdinalIgnoreCase) > 0)
             {
