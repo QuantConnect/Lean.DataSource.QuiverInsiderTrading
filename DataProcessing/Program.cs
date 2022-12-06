@@ -14,6 +14,7 @@
 */
 
 using System;
+using System.IO;
 using QuantConnect.Configuration;
 using QuantConnect.Logging;
 using QuantConnect.Util;
@@ -33,10 +34,10 @@ namespace QuantConnect.DataProcessing
         {
             // Get the config values first before running. These values are set for us
             // automatically to the value set on the website when defining this data type
-            var destinationDirectory = System.IO.Path.Combine(
+            var destinationDirectory = Path.Combine(
                 Config.Get("temp-output-directory", "/temp-output-directory"),
                 "alternative");
-            var processedDataDirectory = System.IO.Path.Combine(
+            var processedDataDirectory = Path.Combine(
                 Config.Get("processed-data-directory", Globals.DataFolder),
                 "alternative");
             processedDataDirectory = destinationDirectory;
