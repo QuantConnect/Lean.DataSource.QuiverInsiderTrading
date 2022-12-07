@@ -40,7 +40,6 @@ namespace QuantConnect.DataProcessing
             var processedDataDirectory = Path.Combine(
                 Config.Get("processed-data-directory", Globals.DataFolder),
                 "alternative");
-            processedDataDirectory = destinationDirectory;
 
             var processingEndDateValue = Config.Get("processing-end-date", Environment.GetEnvironmentVariable("QC_DATAFLEET_DEPLOYMENT_DATE"));
             processingEndDateValue ??= DateTime.Today.ToString("yyyyMMdd");
