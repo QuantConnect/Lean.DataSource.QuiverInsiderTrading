@@ -54,7 +54,8 @@ namespace QuantConnect.DataProcessing
             '-',
             '_',
             '+',
-            '|'
+            '|',
+            '='
         };
 
         private readonly JsonSerializerSettings _jsonSerializerSettings = new ()
@@ -86,6 +87,10 @@ namespace QuantConnect.DataProcessing
             _indexGate = new RateGate(2, TimeSpan.FromSeconds(1));
 
             Directory.CreateDirectory(_universeFolder);
+        }
+
+        public QuiverInsiderTradingDataDownloader()
+        {
         }
 
         /// <summary>
@@ -153,7 +158,7 @@ namespace QuantConnect.DataProcessing
                     }
                     var sid = SecurityIdentifier.GenerateEquity(ticker, Market.USA, true, mapFileProvider, processDate);
 
-                    if (sid.Date == Time.BeginningOfTime || sid.ToString().Contains(" 2T")) continue;
+                    if (sid.Date == SecurityIdentifier.DefaultDate || sid.ToString().Contains(" 2T")) continue;
 
                     if (!insiderTradingByTicker.TryGetValue(ticker, out var _))
                     {
@@ -288,33 +293,26 @@ namespace QuantConnect.DataProcessing
         /// <summary>
         /// Tries to normalize a potentially defunct ticker into a normal ticker.
         /// </summary>
-        /// <param name="rawTicker">Ticker as received from Estimize</param>
+        /// <param name="rawTicker">Ticker as received from InsiderTrading</param>
         /// <param name="nonDefunctTicker">Set as the non-defunct ticker</param>
         /// <returns>true for success, false for failure</returns>
-        private static bool TryNormalizeDefunctTicker(string rawTicker, out string nonDefunctTicker)
+        protected static bool TryNormalizeDefunctTicker(string rawTicker, out string nonDefunctTicker)
         {
             var ticker = rawTicker.Split(':').Last().Replace("\"", string.Empty).ToUpperInvariant().Trim();
-            // The "defunct" indicator can be in any capitalization/case
-            if (ticker.IndexOf("defunct", StringComparison.OrdinalIgnoreCase) > 0)
+            foreach (var delimChar in _defunctDelimiters)
             {
-                foreach (var delimChar in _defunctDelimiters)
+                var length = ticker.IndexOf(delimChar);
+
+                // Continue until we exhaust all delimiters
+                if (length == -1)
                 {
-                    var length = ticker.IndexOf(delimChar);
-
-                    // Continue until we exhaust all delimiters
-                    if (length == -1)
-                    {
-                        continue;
-                    }
-
-                    nonDefunctTicker = ticker.Substring(0, length).Trim();
-                    return true;
+                    continue;
                 }
 
-                nonDefunctTicker = string.Empty;
-                return false;
+                nonDefunctTicker = ticker.Substring(0, length).Trim();
+                return true;
             }
-
+            
             nonDefunctTicker = ticker;
             return true;
         }

@@ -19,6 +19,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using NUnit.Framework;
 using QuantConnect.Data;
+using QuantConnect.DataProcessing;
 using QuantConnect.DataSource;
 
 namespace QuantConnect.DataLibrary.Tests
@@ -44,6 +45,19 @@ namespace QuantConnect.DataLibrary.Tests
             var result = expected.Clone();
 
             AssertAreEqual(expected, result);
+        }
+
+        [TestCase("abc123:msft\"", ExpectedResult="MSFT")]
+        [TestCase("AAPL+", ExpectedResult="AAPL")]
+        [TestCase("AAPL-", ExpectedResult="AAPL")]
+        [TestCase("AAPL=", ExpectedResult="AAPL")]
+        [TestCase("GOOG|C", ExpectedResult="GOOG")]
+        [TestCase("A_", ExpectedResult="A")]
+        [TestCase("AAPL", ExpectedResult="AAPL")]
+        public string TryNormalizeDefunctTicker(string rawTicker)
+        {
+            var testDownloader = new TestDownloader();
+            return testDownloader.TestTryNormalizeDefunctTicker(rawTicker);
         }
 
         private void AssertAreEqual(object expected, object result, bool filterByCustomAttributes = false)
@@ -74,6 +88,20 @@ namespace QuantConnect.DataLibrary.Tests
                 PricePerShare = 0.0m,
                 SharesOwnedFollowing = 0.0m
             };
+        }
+
+        public class TestDownloader : QuiverInsiderTradingDataDownloader
+        {
+            public TestDownloader()
+                : base()
+            {
+            }
+
+            public string TestTryNormalizeDefunctTicker(string rawTicker)
+            {
+                TryNormalizeDefunctTicker(rawTicker, out var nonDefunctTicker);
+                return nonDefunctTicker;
+            }
         }
     }
 }

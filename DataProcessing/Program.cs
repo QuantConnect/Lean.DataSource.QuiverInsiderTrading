@@ -46,7 +46,7 @@ namespace QuantConnect.DataProcessing
             processingEndDateValue ??= DateTime.Today.ToString("yyyyMMdd");
             var processingEndDate = Parse.DateTimeExact(processingEndDateValue, "yyyyMMdd");
 
-            var processingStartDateValue = Config.Get("processing-start-date", Environment.GetEnvironmentVariable("QUIVER_INSIDER_START_DATE"));
+            var processingStartDateValue = Config.Get("processing-start-date", Environment.GetEnvironmentVariable("QC_DATAFLEET_DEPLOYMENT_DATE"));
             processingStartDateValue ??= DateTime.Today.ToString("yyyyMMdd");
             var processingStartDate = Parse.DateTimeExact(processingStartDateValue, "yyyyMMdd");
 
