@@ -180,7 +180,7 @@ namespace QuantConnect.DataProcessing
                     SaveContentToFile(_universeFolder, $"{processDate:yyyyMMdd}", universeCsvContents);
                 }
 
-                insiderTradingByTicker.DoForEach(kvp => SaveContentToFile(_destinationFolder, kvp.Key.ToLower(), kvp.Value));
+                insiderTradingByTicker.DoForEach(kvp => SaveContentToFile(_destinationFolder, kvp.Key, kvp.Value));
             }
             catch (Exception e)
             {
@@ -268,7 +268,7 @@ namespace QuantConnect.DataProcessing
             }
             else
             {
-                filePath = Path.Combine(_processedDataDirectory, $"{name}.csv");
+                filePath = Path.Combine(_processedDataDirectory, $"{name.ToLowerInvariant()}.csv");
             }
 
             var finalFileExists = File.Exists(filePath);
