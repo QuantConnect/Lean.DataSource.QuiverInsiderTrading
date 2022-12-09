@@ -180,7 +180,7 @@ namespace QuantConnect.DataProcessing
                     SaveContentToFile(_universeFolder, $"{processDate:yyyyMMdd}", universeCsvContents);
                 }
 
-                insiderTradingByTicker.DoForEach(kvp => SaveContentToFile(_destinationFolder, kvp.Key, kvp.Value));
+                insiderTradingByTicker.DoForEach(kvp => SaveContentToFile(_destinationFolder, kvp.Key.ToLower(), kvp.Value));
             }
             catch (Exception e)
             {
