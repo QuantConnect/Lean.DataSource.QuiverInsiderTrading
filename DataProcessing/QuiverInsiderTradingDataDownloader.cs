@@ -268,7 +268,7 @@ namespace QuantConnect.DataProcessing
             }
             else
             {
-                filePath = Path.Combine(_processedDataDirectory, $"{name}.csv");
+                filePath = Path.Combine(_processedDataDirectory, $"{name.ToLowerInvariant()}.csv");
             }
 
             var finalFileExists = File.Exists(filePath);
