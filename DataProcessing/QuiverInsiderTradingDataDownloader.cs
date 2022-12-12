@@ -126,7 +126,7 @@ namespace QuantConnect.DataProcessing
             {
                 if (processDate > today || processDate == DateTime.MinValue)
                 {
-                    Log.Trace($"Encountered data from invalid date: {processDate:yyyy-MM-dd} - Skipping");
+                    Log.Trace($"QuiverInsiderTradingDataDownloader.Run(): Encountered data from invalid date: {processDate:yyyy-MM-dd} - Skipping");
                     return false;
                 }
                 
@@ -153,10 +153,20 @@ namespace QuantConnect.DataProcessing
                     if (!TryNormalizeDefunctTicker(quiverTicker, out var ticker))
                     {
                         Log.Error(
-                            $"QuiverInsiderTradingDataDownloader(): Defunct ticker {quiverTicker} is unable to be parsed. Continuing...");
+                            $"QuiverInsiderTradingDataDownloader.Run(): Defunct ticker {quiverTicker} is unable to be parsed. Continuing...");
                         continue;
                     }
-                    var sid = SecurityIdentifier.GenerateEquity(ticker, Market.USA, true, mapFileProvider, processDate);
+
+                    SecurityIdentifier sid;
+                    try
+                    {
+                        sid = SecurityIdentifier.GenerateEquity(ticker, Market.USA, true, mapFileProvider, processDate);
+                    }
+                    catch
+                    {
+                        Log.Error($"QuiverInsiderTradingDataDownloader.Run(): Fail to get SID for ticker {ticker} - Skipping ...");
+                        continue;
+                    }
 
                     if (sid.Date == SecurityIdentifier.DefaultDate || sid.ToString().Contains(" 2T")) continue;
 
@@ -184,7 +194,7 @@ namespace QuantConnect.DataProcessing
             }
             catch (Exception e)
             {
-                Log.Error(e);
+                Log.Error($"QuiverInsiderTradingDataDownloader.Run(): Exception for processing date {processDate:yyyyMMdd} :: {e}");
                 return false;
             }
 
