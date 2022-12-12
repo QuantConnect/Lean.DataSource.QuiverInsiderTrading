@@ -47,14 +47,15 @@ namespace QuantConnect.DataLibrary.Tests
             AssertAreEqual(expected, result);
         }
 
-        [TestCase("abc123:msft\"", ExpectedResult="MSFT")]
-        [TestCase("AAPL+", ExpectedResult="AAPL")]
-        [TestCase("AAPL-", ExpectedResult="AAPL")]
-        [TestCase("AAPL=", ExpectedResult="AAPL")]
-        [TestCase("GOOG|C", ExpectedResult="GOOG")]
-        [TestCase("A_", ExpectedResult="A")]
-        [TestCase("AAPL", ExpectedResult="AAPL")]
-        public string TryNormalizeDefunctTicker(string rawTicker)
+        [TestCase("abc123:msft\"", ExpectedResult = new string[] {"MSFT"})]
+        [TestCase("AAPL+", ExpectedResult = new string[] {"AAPL"})]
+        [TestCase("AAPL-", ExpectedResult = new string[] {"AAPL"})]
+        [TestCase("AAPL=", ExpectedResult = new string[] {"AAPL"})]
+        [TestCase("GOOG|C", ExpectedResult = new string[] {"GOOG"})]
+        [TestCase("A_", ExpectedResult = new string[] {"A"})]
+        [TestCase("CRUA CRUB", ExpectedResult = new string[] {"CRUA", "CRUB"})]
+        [TestCase("AAPL", ExpectedResult = new string[] {"AAPL"})]
+        public string[] TryNormalizeDefunctTicker(string rawTicker)
         {
             var testDownloader = new TestDownloader();
             return testDownloader.TestTryNormalizeDefunctTicker(rawTicker);
@@ -97,10 +98,10 @@ namespace QuantConnect.DataLibrary.Tests
             {
             }
 
-            public string TestTryNormalizeDefunctTicker(string rawTicker)
+            public string[] TestTryNormalizeDefunctTicker(string rawTicker)
             {
-                TryNormalizeDefunctTicker(rawTicker, out var nonDefunctTicker);
-                return nonDefunctTicker;
+                TryNormalizeDefunctTicker(rawTicker, out var tickerList);
+                return tickerList;
             }
         }
     }
