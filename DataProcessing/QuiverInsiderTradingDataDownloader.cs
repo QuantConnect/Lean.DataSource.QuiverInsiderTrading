@@ -24,7 +24,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
-using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -118,6 +117,7 @@ namespace QuantConnect.DataProcessing
         /// <returns>True if process all downloads successfully</returns>
         public bool Run(DateTime processDate)
         {
+            var symbolsProcessed = new List<string>();
             var stopwatch = Stopwatch.StartNew();
             Log.Trace($"QuiverInsiderTradingDataDownloader.Run(): Start downloading/processing QuiverQuant Insider Trading data");
 
@@ -150,25 +150,31 @@ namespace QuantConnect.DataProcessing
                     var quiverTicker = insiderTrade.Ticker;
                     if (quiverTicker == null) continue;
 
-                    if (!TryNormalizeDefunctTicker(quiverTicker, out var ticker))
+                    if (!TryNormalizeDefunctTicker(quiverTicker, out var tickerList))
                     {
                         Log.Error(
-                            $"QuiverInsiderTradingDataDownloader(): Defunct ticker {quiverTicker} is unable to be parsed. Continuing...");
+                            $"QuiverInsiderTradingDataDownloader.Run(): Defunct ticker {quiverTicker} is unable to be parsed. Continuing...");
                         continue;
                     }
-                    var sid = SecurityIdentifier.GenerateEquity(ticker, Market.USA, true, mapFileProvider, processDate);
 
-                    if (sid.Date == SecurityIdentifier.DefaultDate || sid.ToString().Contains(" 2T")) continue;
-
-                    if (!insiderTradingByTicker.TryGetValue(ticker, out var _))
+                    foreach (var ticker in tickerList)
                     {
-                        insiderTradingByTicker.Add(ticker, new List<string>());
+                        symbolsProcessed.Add(ticker);
+                        
+                        var sid = SecurityIdentifier.GenerateEquity(ticker, Market.USA, true, mapFileProvider, processDate);
+
+                        if (sid.Date == SecurityIdentifier.DefaultDate || sid.ToString().Contains(" 2T")) continue;
+
+                        if (!insiderTradingByTicker.TryGetValue(ticker, out var _))
+                        {
+                            insiderTradingByTicker.Add(ticker, new List<string>());
+                        }
+
+                        var curRow = $"{insiderTrade.Name.Replace(",", string.Empty).Trim().ToLower()},{insiderTrade.Shares},{insiderTrade.PricePerShare},{insiderTrade.SharesOwnedFollowing}";
+                        insiderTradingByTicker[ticker].Add($"{processDate:yyyyMMdd},{curRow}");
+
+                        universeCsvContents.Add($"{sid},{ticker},{curRow}");
                     }
-
-                    var curRow = $"{insiderTrade.Name.Replace(",", string.Empty).Trim().ToLower()},{insiderTrade.Shares},{insiderTrade.PricePerShare},{insiderTrade.SharesOwnedFollowing}";
-                    insiderTradingByTicker[ticker].Add($"{processDate:yyyyMMdd},{curRow}");
-
-                    universeCsvContents.Add($"{sid},{ticker},{curRow}");
                 }
 
                 if (!_canCreateUniverseFiles)
@@ -181,6 +187,7 @@ namespace QuantConnect.DataProcessing
                 }
 
                 insiderTradingByTicker.DoForEach(kvp => SaveContentToFile(_destinationFolder, kvp.Key, kvp.Value));
+                Log.Trace($"QuiverInsiderTradingDataDownloader.Run(): Processed tickers for {processDate:yyyyMMdd} - {String.Join(", ", symbolsProcessed)}");
             }
             catch (Exception e)
             {
@@ -294,9 +301,9 @@ namespace QuantConnect.DataProcessing
         /// Tries to normalize a potentially defunct ticker into a normal ticker.
         /// </summary>
         /// <param name="rawTicker">Ticker as received from InsiderTrading</param>
-        /// <param name="nonDefunctTicker">Set as the non-defunct ticker</param>
+        /// <param name="tickerList">an array the non-defunct ticker of the same company</param>
         /// <returns>true for success, false for failure</returns>
-        protected static bool TryNormalizeDefunctTicker(string rawTicker, out string nonDefunctTicker)
+        protected static bool TryNormalizeDefunctTicker(string rawTicker, out string[] tickerList)
         {
             var ticker = rawTicker.Split(':').Last().Replace("\"", string.Empty).ToUpperInvariant().Trim();
             foreach (var delimChar in _defunctDelimiters)
@@ -309,11 +316,11 @@ namespace QuantConnect.DataProcessing
                     continue;
                 }
 
-                nonDefunctTicker = ticker.Substring(0, length).Trim();
+                tickerList = ticker.Substring(0, length).Trim().Split(' ');
                 return true;
             }
             
-            nonDefunctTicker = ticker;
+            tickerList = ticker.Split(' ');
             return true;
         }
 
