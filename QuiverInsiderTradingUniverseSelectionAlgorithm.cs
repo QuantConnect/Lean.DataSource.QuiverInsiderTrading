@@ -34,7 +34,7 @@ namespace QuantConnect.Algorithm.CSharp
             // Data ADDED via universe selection is added with Daily resolution.
             UniverseSettings.Resolution = Resolution.Daily;
 
-	        SetStartDate(2022, 2, 14);
+            SetStartDate(2022, 2, 14);
             SetEndDate(2022, 2, 18);
             SetCash(100000);
 
@@ -43,7 +43,7 @@ namespace QuantConnect.Algorithm.CSharp
             {
                 var symbolData = new Dictionary<Symbol, List<QuiverInsiderTradingUniverse>>();
 
-                foreach (var datum in data)
+                foreach (QuiverInsiderTradingUniverse datum in data)
                 {
                     var symbol = datum.Symbol;
 
@@ -62,7 +62,7 @@ namespace QuantConnect.Algorithm.CSharp
                        select kvp.Key;
             });
         }
-        
+
         /// <summary>
         /// Event fired each time that we add/remove securities from the data feed
         /// </summary>

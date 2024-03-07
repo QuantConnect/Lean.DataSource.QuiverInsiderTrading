@@ -17,16 +17,18 @@
 using Newtonsoft.Json;
 using NodaTime;
 using QuantConnect.Data;
+using QuantConnect.Data.UniverseSelection;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 
 namespace QuantConnect.DataSource
 {
     /// <summary>
     /// Insider Trading by private businesses
     /// </summary>
-    public class QuiverInsiderTrading : BaseData
+    public class QuiverInsiderTrading : BaseDataCollection
     {
         private static readonly TimeSpan _period = TimeSpan.FromDays(1);
 
@@ -60,6 +62,28 @@ namespace QuantConnect.DataSource
         public override DateTime EndTime => Time + _period;
 
         /// <summary>
+        /// Return the URL string source of the file. This will be converted to a stream
+        /// </summary>
+        /// <param name="config">Configuration object</param>
+        /// <param name="date">Date of this source file</param>
+        /// <param name="isLiveMode">true if we're in live mode, false for backtesting mode</param>
+        /// <returns>String URL of source file.</returns>
+        public override SubscriptionDataSource GetSource(SubscriptionDataConfig config, DateTime date, bool isLiveMode)
+        {
+            return new SubscriptionDataSource(
+                Path.Combine(
+                    Globals.DataFolder,
+                    "alternative",
+                    "quiver",
+                    "insidertrading",
+                    $"{config.Symbol.Value.ToLowerInvariant()}.csv"
+                ),
+                SubscriptionTransportMedium.LocalFile,
+                FileFormat.FoldingCollection
+            );
+        }
+
+        /// <summary>
         /// Parses the data from the line provided and loads it into LEAN
         /// </summary>
         /// <param name="config">Subscription configuration</param>
@@ -89,7 +113,12 @@ namespace QuantConnect.DataSource
         /// </summary>
         public override string ToString()
         {
-            return $"{Symbol} - {Name} - {Shares} - {PricePerShare} - {SharesOwnedFollowing} ";
+            if (Data.Count > 0)
+            {
+                // we are the wrapper instance
+                return $"{Symbol} - Data Points {Data.Count}";
+            }
+            return $"{Symbol} - {Name} - {Shares} - {PricePerShare} - {SharesOwnedFollowing}";
         }
 
         /// <summary>
@@ -99,6 +128,23 @@ namespace QuantConnect.DataSource
         public override bool RequiresMapping()
         {
             return true;
+        }
+
+        /// <summary>
+        /// Clone implementation
+        /// </summary>
+        public override BaseData Clone()
+        {
+            return new QuiverInsiderTrading()
+            {
+                Name = Name,
+                Shares = Shares,
+                PricePerShare = PricePerShare,
+                SharesOwnedFollowing = SharesOwnedFollowing,
+                Data = Data,
+                Symbol = Symbol,
+                Time = Time,
+            };
         }
 
         /// <summary>

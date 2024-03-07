@@ -16,7 +16,7 @@ from AlgorithmImports import *
 ### <summary>
 ### Example algorithm using the custom data type as a source of alpha
 ### </summary>
-class QuiverInsiderTradingUniverseSelectionAlgorithm(QCAlgorithm): 
+class QuiverInsiderTradingUniverseSelectionAlgorithm(QCAlgorithm):
     def Initialize(self):
         ''' Initialise the data and resolution required, as well as the cash and start-end dates for your algorithm. All algorithms must initialized. '''
 
@@ -48,7 +48,7 @@ class QuiverInsiderTradingUniverseSelectionAlgorithm(QCAlgorithm):
         
         # define our selection criteria
         return [symbol for symbol, d in symbol_data.items()
-                if len(d) >= 2 and sum([x.Shares * x.PricePerShare for x in d]) > 100000]
+                if len(d) >= 2 and sum([x.Shares * x.PricePerShare for x in d if x.Shares != None and x.PricePerShare != None]) > 100000]
         
     def OnSecuritiesChanged(self, changes):
         ''' Event fired each time that we add/remove securities from the data feed
