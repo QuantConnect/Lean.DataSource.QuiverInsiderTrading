@@ -39,7 +39,7 @@ namespace QuantConnect.Algorithm.CSharp
             SetCash(100000);
 
             // add a custom universe data source (defaults to usa-equity)
-            AddUniverse<QuiverInsiderTradingUniverse>("QuiverInsiderTradingUniverse", Resolution.Daily, data =>
+            var universe = AddUniverse<QuiverInsiderTradingUniverse>("QuiverInsiderTradingUniverse", Resolution.Daily, data =>
             {
                 var symbolData = new Dictionary<Symbol, List<QuiverInsiderTradingUniverse>>();
 
@@ -61,6 +61,20 @@ namespace QuantConnect.Algorithm.CSharp
                        where kvp.Value.Count >= 2 && kvp.Value.Sum(x => x.Shares * x.PricePerShare) > 100000m
                        select kvp.Key;
             });
+
+            var history = History(universe, 1).ToList();
+            if (history.Count != 1)
+            {
+                throw new System.Exception($"Unexpected historical data count!");
+            }
+            foreach (var dataForDate in history)
+            {
+                var coarseData = dataForDate.ToList();
+                if (coarseData.Count < 300)
+                {
+                    throw new System.Exception($"Unexpected historical universe data!");
+                }
+            }
         }
 
         /// <summary>
