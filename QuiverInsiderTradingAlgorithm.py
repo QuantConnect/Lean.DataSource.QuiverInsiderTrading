@@ -32,9 +32,9 @@ class CustomDataAlgorithm(QCAlgorithm):
         data = slice.Get(QuiverInsiderTrading)
         if data:
             for insider_trades in data.Values:
-                self.Log(f"{Time} {insider_trades}")
+                self.Log(f"{self.Time} {insider_trades}")
                 for insider_trade in insider_trades:
-                    self.Log(f"{Time} {insider_trade}")
+                    self.Log(f"{self.Time} {insider_trade}")
                     if insider_trade.Shares > 0:
                         self.SetHoldings(self.equity_symbol, 1)
                     else:
