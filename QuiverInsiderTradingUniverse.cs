@@ -20,6 +20,7 @@ using System.Globalization;
 using System.IO;
 using NodaTime;
 using QuantConnect.Data;
+using QuantConnect.Data.UniverseSelection;
 using static QuantConnect.StringExtensions;
 
 namespace QuantConnect.DataSource
@@ -27,7 +28,7 @@ namespace QuantConnect.DataSource
     /// <summary>
     /// Universe Selection helper class for QuiverQuant InsiderTrading dataset
     /// </summary>
-    public class QuiverInsiderTradingUniverse : BaseData
+    public class QuiverInsiderTradingUniverse : BaseDataCollection
     {
         private static readonly TimeSpan _period = TimeSpan.FromDays(1);
 
@@ -74,7 +75,8 @@ namespace QuantConnect.DataSource
                     "universe",
                     $"{date.ToStringInvariant(DateFormat.EightCharacter)}.csv"
                 ),
-                SubscriptionTransportMedium.LocalFile
+                SubscriptionTransportMedium.LocalFile,
+                FileFormat.FoldingCollection
             );
         }
 
@@ -117,6 +119,23 @@ namespace QuantConnect.DataSource
                    Invariant($"Shares: {Shares} ") +
                    Invariant($"PricePerShare: {PricePerShare} ") +
                    Invariant($"SharesOwnedFollowing: {SharesOwnedFollowing}");
+        }
+
+        /// <summary>
+        /// Clone implementation
+        /// </summary>
+        public override BaseData Clone()
+        {
+            return new QuiverInsiderTradingUniverse()
+            {
+                Name = Name,
+                Shares = Shares,
+                PricePerShare = PricePerShare,
+                SharesOwnedFollowing = SharesOwnedFollowing,
+                Data = Data,
+                Symbol = Symbol,
+                Time = Time,
+            };
         }
 
         /// <summary>

@@ -20,31 +20,29 @@ class CustomDataAlgorithm(QCAlgorithm):
     def Initialize(self):
         ''' Initialise the data and resolution required, as well as the cash and start-end dates for your algorithm. All algorithms must initialized.'''
         
-        self.SetStartDate(2021, 5, 15)   #Set Start Date
-        self.SetEndDate(2021, 5, 22)    #Set End Date
-        self.equity_symbol = self.AddEquity("AAPL", Resolution.Daily).Symbol
-        self.custom_data_symbol = self.AddData(QuiverInsiderTradings, self.equity_symbol).Symbol
+        self.SetStartDate(2022, 2, 17)   #Set Start Date
+        self.SetEndDate(2022, 2, 22)    #Set End Date
+        self.equity_symbol = self.AddEquity("ALSN", Resolution.Daily).Symbol
+        self.custom_data_symbol = self.AddData(QuiverInsiderTrading, self.equity_symbol).Symbol
 
     def OnData(self, slice):
         ''' OnData event is the primary entry point for your algorithm. Each new data point will be pumped in here.
         :param Slice slice: Slice object keyed by symbol containing the stock data
         '''
-        data = slice.Get(QuiverInsiderTradings)
+        data = slice.Get(QuiverInsiderTrading)
         if data:
-            for insider_trades in data:
-                self.Log(f"{Time} {insider_trades.ToString()}")
-
+            for insider_trades in data.Values:
+                self.Log(f"{self.Time} {insider_trades}")
                 for insider_trade in insider_trades:
-                    insider_trade = QuiverInsiderTrading(insider_trade)
-                    
+                    self.Log(f"{self.Time} {insider_trade}")
                     if insider_trade.Shares > 0:
-                        self.SetHoldings(self.equitySymbol, 1)
+                        self.SetHoldings(self.equity_symbol, 1)
                     else:
-                        self.SetHoldings(self.equitySymbol, -1)
+                        self.SetHoldings(self.equity_symbol, -1)
 
     def OnOrderEvent(self, orderEvent):
         ''' Order fill event handler. On an order fill update the resulting information is passed to this method.
         :param OrderEvent orderEvent: Order event details containing details of the events
         '''
-        if orderEvent.Status == OrderStatus.Fill:
+        if orderEvent.Status == OrderStatus.Filled:
             self.Debug(f'Purchased Stock: {orderEvent.Symbol}')

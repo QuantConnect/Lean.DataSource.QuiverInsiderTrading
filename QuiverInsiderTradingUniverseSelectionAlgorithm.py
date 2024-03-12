@@ -16,7 +16,7 @@ from AlgorithmImports import *
 ### <summary>
 ### Example algorithm using the custom data type as a source of alpha
 ### </summary>
-class QuiverInsiderTradingUniverseSelectionAlgorithm(QCAlgorithm): 
+class QuiverInsiderTradingUniverseSelectionAlgorithm(QCAlgorithm):
     def Initialize(self):
         ''' Initialise the data and resolution required, as well as the cash and start-end dates for your algorithm. All algorithms must initialized. '''
 
@@ -28,7 +28,15 @@ class QuiverInsiderTradingUniverseSelectionAlgorithm(QCAlgorithm):
         self.SetCash(100000)
 
         # add a custom universe data source (defaults to usa-equity)
-        self.AddUniverse(QuiverInsiderTradingUniverse, "QuiverInsiderTradingUniverse", Resolution.Daily, self.UniverseSelection)
+        universe = self.AddUniverse(QuiverInsiderTradingUniverse, "QuiverInsiderTradingUniverse", Resolution.Daily, self.UniverseSelection)
+
+        history = self.History(universe, TimeSpan(1, 0, 0, 0))
+        if len(history) != 1:
+            raise ValueError(f"Unexpected history count {len(history)}! Expected 1")
+
+        for dataForDate in history:
+            if len(dataForDate) < 300:
+                raise ValueError(f"Unexpected historical universe data!")
 
     def UniverseSelection(self, data):
         ''' Selected the securities
@@ -48,7 +56,7 @@ class QuiverInsiderTradingUniverseSelectionAlgorithm(QCAlgorithm):
         
         # define our selection criteria
         return [symbol for symbol, d in symbol_data.items()
-                if len(d) >= 2 and sum([x.Shares * x.PricePerShare for x in d]) > 100000]
+                if len(d) >= 2 and sum([x.Shares * x.PricePerShare for x in d if x.Shares != None and x.PricePerShare != None]) > 100000]
         
     def OnSecuritiesChanged(self, changes):
         ''' Event fired each time that we add/remove securities from the data feed

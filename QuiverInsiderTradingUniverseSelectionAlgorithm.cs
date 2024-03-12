@@ -34,16 +34,16 @@ namespace QuantConnect.Algorithm.CSharp
             // Data ADDED via universe selection is added with Daily resolution.
             UniverseSettings.Resolution = Resolution.Daily;
 
-	        SetStartDate(2022, 2, 14);
+            SetStartDate(2022, 2, 14);
             SetEndDate(2022, 2, 18);
             SetCash(100000);
 
             // add a custom universe data source (defaults to usa-equity)
-            AddUniverse<QuiverInsiderTradingUniverse>("QuiverInsiderTradingUniverse", Resolution.Daily, data =>
+            var universe = AddUniverse<QuiverInsiderTradingUniverse>("QuiverInsiderTradingUniverse", Resolution.Daily, data =>
             {
                 var symbolData = new Dictionary<Symbol, List<QuiverInsiderTradingUniverse>>();
 
-                foreach (var datum in data)
+                foreach (QuiverInsiderTradingUniverse datum in data)
                 {
                     var symbol = datum.Symbol;
 
@@ -61,8 +61,22 @@ namespace QuantConnect.Algorithm.CSharp
                        where kvp.Value.Count >= 2 && kvp.Value.Sum(x => x.Shares * x.PricePerShare) > 100000m
                        select kvp.Key;
             });
+
+            var history = History(universe, 1).ToList();
+            if (history.Count != 1)
+            {
+                throw new System.Exception($"Unexpected historical data count!");
+            }
+            foreach (var dataForDate in history)
+            {
+                var coarseData = dataForDate.ToList();
+                if (coarseData.Count < 300)
+                {
+                    throw new System.Exception($"Unexpected historical universe data!");
+                }
+            }
         }
-        
+
         /// <summary>
         /// Event fired each time that we add/remove securities from the data feed
         /// </summary>
