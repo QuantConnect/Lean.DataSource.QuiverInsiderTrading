@@ -28,6 +28,7 @@ namespace QuantConnect.DataSource
     /// <summary>
     /// Insider Trading by private businesses
     /// </summary>
+    [JsonObject]
     public class QuiverInsiderTrading : BaseDataCollection
     {
         private static readonly TimeSpan _period = TimeSpan.FromDays(1);
