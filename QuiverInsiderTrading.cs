@@ -18,6 +18,8 @@ using Newtonsoft.Json;
 using NodaTime;
 using QuantConnect.Data;
 using QuantConnect.Data.UniverseSelection;
+using QuantConnect.Orders;
+using QuantConnect.Util;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -52,10 +54,22 @@ namespace QuantConnect.DataSource
         public decimal? PricePerShare { get; set; }
 
         /// <summary>
-        /// Shares Owned after transcation
+        /// Shares Owned after transaction
         /// </summary>
         [JsonProperty(PropertyName = "SharesOwnedFollowing")]
         public decimal? SharesOwnedFollowing { get; set; }
+
+        /// <summary>
+        /// The type of transaction
+        /// </summary>
+        public OrderDirection Transaction { get; set; } = OrderDirection.Hold;
+
+        /// <summary>
+        /// The date the transaction took place
+        /// </summary>
+        [JsonProperty(PropertyName = "Date")]
+        [JsonConverter(typeof(DateTimeJsonConverter), "yyyy-MM-dd")]
+        public DateTime Date { get; set; }
 
         /// <summary>
         /// The time the data point ends at and becomes available to the algorithm
@@ -95,17 +109,19 @@ namespace QuantConnect.DataSource
         public override BaseData Reader(SubscriptionDataConfig config, string line, DateTime date, bool isLiveMode)
         {
             var csv = line.Split(',');
-
-            var parsedDate = Parse.DateTimeExact(csv[0], "yyyyMMdd");//, "'yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\''" 
+            var price = csv[5].IfNotNullOrEmpty<decimal?>(s => decimal.Parse(s, NumberStyles.Any, CultureInfo.InvariantCulture));
 
             return new QuiverInsiderTrading
             {
-                Name = csv[1],
-                Shares = csv[2].IfNotNullOrEmpty<decimal?>(s => decimal.Parse(s, NumberStyles.Any, CultureInfo.InvariantCulture)),
-                PricePerShare = csv[3].IfNotNullOrEmpty<decimal?>(s => decimal.Parse(s, NumberStyles.Any, CultureInfo.InvariantCulture)),
-                SharesOwnedFollowing = csv[4].IfNotNullOrEmpty<decimal?>(s => decimal.Parse(s, NumberStyles.Any, CultureInfo.InvariantCulture)),
-                Time = parsedDate,
-                Symbol = config.Symbol
+                Symbol = config.Symbol,
+                Time = Parse.DateTimeExact(csv[0], "yyyyMMdd"),
+                Value = price ?? 0,
+                Date = Parse.DateTimeExact(csv[1], "yyyyMMdd"),
+                Name = csv[2],
+                Transaction = (OrderDirection)Enum.Parse(typeof(OrderDirection), csv[3]),
+                Shares = csv[4].IfNotNullOrEmpty<decimal?>(s => decimal.Parse(s, NumberStyles.Any, CultureInfo.InvariantCulture)),
+                PricePerShare = price,
+                SharesOwnedFollowing = csv[6].IfNotNullOrEmpty<decimal?>(s => decimal.Parse(s, NumberStyles.Any, CultureInfo.InvariantCulture))
             };
         }
 
@@ -119,7 +135,7 @@ namespace QuantConnect.DataSource
                 // we are the wrapper instance
                 return $"{Symbol} - Data Points {Data.Count}";
             }
-            return $"{Symbol} - {Name} - {Shares} - {PricePerShare} - {SharesOwnedFollowing}";
+            return $"{Symbol} - {Date:yyyyMMdd} - {Name} - {Shares} - {PricePerShare} - {SharesOwnedFollowing} - {Transaction}";
         }
 
         /// <summary>
@@ -142,6 +158,8 @@ namespace QuantConnect.DataSource
                 Shares = Shares,
                 PricePerShare = PricePerShare,
                 SharesOwnedFollowing = SharesOwnedFollowing,
+                Transaction = Transaction,
+                Date = Date,
                 Data = Data,
                 Symbol = Symbol,
                 Time = Time,
@@ -180,7 +198,7 @@ namespace QuantConnect.DataSource
         /// <returns>The <see cref="T:NodaTime.DateTimeZone" /> of this data type</returns>
         public override DateTimeZone DataTimeZone()
         {
-            return DateTimeZone.Utc;
+            return TimeZones.NewYork;
         }
     }
 }
