@@ -17,16 +17,20 @@
 using System;
 using System.Linq;
 using Newtonsoft.Json;
+using NodaTime;
 using NUnit.Framework;
 using QuantConnect.Data;
 using QuantConnect.DataProcessing;
 using QuantConnect.DataSource;
+using QuantConnect.Orders;
 
 namespace QuantConnect.DataLibrary.Tests
 {
     [TestFixture]
     public class QuiverInsiderTradingTests
     {
+        private readonly Symbol _symbol = new(SecurityIdentifier.Parse("AAPL R735QTJ8XC9X"), "AAPL");
+
         [Test]
         public void JsonRoundTrip()
         {
@@ -61,6 +65,45 @@ namespace QuantConnect.DataLibrary.Tests
             return testDownloader.TestTryNormalizeDefunctTicker(rawTicker);
         }
 
+        [Test]
+        public void TestReader()
+        {
+            const string content = "20230808,20230805,o'brien deirdre,0,31896.0,,168341.0";
+            var instance = CreateNewInstance();
+            var config = new SubscriptionDataConfig(typeof(QuiverInsiderTrading), _symbol, Resolution.Daily,
+                DateTimeZone.Utc, DateTimeZone.Utc, false, false, false);
+            var data = instance.Reader(config, content, DateTime.UtcNow, false) as QuiverInsiderTrading;
+
+            Assert.IsNotNull(data);
+            Assert.AreEqual(_symbol, data.Symbol);
+            Assert.AreEqual(new DateTime(2023, 8, 8), data.Time);
+            Assert.AreEqual(new DateTime(2023, 8, 5), data.Date);
+            Assert.AreEqual("o'brien deirdre", data.Name);
+            Assert.AreEqual(OrderDirection.Buy, data.Transaction);
+            Assert.IsNull(data.PricePerShare);
+            Assert.AreEqual(31896.0, data.Shares);
+            Assert.AreEqual(168341.0, data.SharesOwnedFollowing);
+        }
+
+        [Test]
+        public void TestUniverseReader()
+        {
+            const string content = "AAPL R735QTJ8XC9X,AAPL,20230805,o'brien deirdre,1,16477.0,181.99,151864.0";
+            var instance = new QuiverInsiderTradingUniverse();
+            var config = new SubscriptionDataConfig(typeof(QuiverInsiderTradingUniverse), Symbol.None, Resolution.Daily,
+                DateTimeZone.Utc, DateTimeZone.Utc, false, false, false);
+            var data = instance.Reader(config, content, DateTime.UtcNow, false) as QuiverInsiderTradingUniverse;
+
+            Assert.IsNotNull(data);
+            Assert.AreEqual(_symbol, data.Symbol);
+            Assert.AreEqual(new DateTime(2023, 8, 5), data.Date);
+            Assert.AreEqual("o'brien deirdre", data.Name);
+            Assert.AreEqual(OrderDirection.Sell, data.Transaction);
+            Assert.AreEqual(16477.0, data.Shares);
+            Assert.AreEqual(181.99, data.PricePerShare);
+            Assert.AreEqual(151864.0, data.SharesOwnedFollowing);
+        }
+
         private void AssertAreEqual(object expected, object result, bool filterByCustomAttributes = false)
         {
             foreach (var propertyInfo in expected.GetType().GetProperties())
@@ -83,6 +126,8 @@ namespace QuantConnect.DataLibrary.Tests
             {
                 Symbol = Symbol.Empty,
                 Time = DateTime.Today,
+                Date = DateTime.Today.AddDays(-1),
+                Transaction = OrderDirection.Buy,
                 DataType = MarketDataType.Base,
                 Name = "Institution name",
                 Shares = 0.0m,

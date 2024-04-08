@@ -31,6 +31,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
+using QuantConnect.Orders;
 
 namespace QuantConnect.DataProcessing
 {
@@ -150,6 +151,18 @@ namespace QuantConnect.DataProcessing
                     var quiverTicker = insiderTrade.Ticker;
                     if (quiverTicker == null) continue;
 
+                    switch (insiderTrade.AcquiredDisposedCode)
+                    {
+                        case "A":
+                            insiderTrade.Transaction = OrderDirection.Buy;
+                            break;
+                        case "D":
+                            insiderTrade.Transaction = OrderDirection.Sell;
+                            break;
+                        default:
+                            continue;
+                    }
+
                     if (!TryNormalizeDefunctTicker(quiverTicker, out var tickerList))
                     {
                         Log.Error(
@@ -170,7 +183,7 @@ namespace QuantConnect.DataProcessing
                             insiderTradingByTicker.Add(ticker, new List<string>());
                         }
 
-                        var curRow = $"{insiderTrade.Name.Replace(",", string.Empty).Trim().ToLower()},{insiderTrade.Shares},{insiderTrade.PricePerShare},{insiderTrade.SharesOwnedFollowing}";
+                        var curRow = $"{insiderTrade.Date:yyyyMMdd},{insiderTrade.Name.Replace(",", string.Empty).Trim().ToLower()},{(int)insiderTrade.Transaction},{insiderTrade.Shares},{insiderTrade.PricePerShare},{insiderTrade.SharesOwnedFollowing}";
                         insiderTradingByTicker[ticker].Add($"{processDate:yyyyMMdd},{curRow}");
 
                         universeCsvContents.Add($"{sid},{ticker},{curRow}");
@@ -327,12 +340,11 @@ namespace QuantConnect.DataProcessing
         private class RawInsiderTrading : QuiverInsiderTrading
         {
             /// <summary>
-            /// The time the data point ends at and becomes available to the algorithm
+            /// AcquiredDisposedCode column. "A" corresponds to a purchase, and "D" corresponds with a sale.
             /// </summary>
-            [JsonProperty(PropertyName = "Date")]
-            [JsonConverter(typeof(DateTimeJsonConverter), "yyyy-MM-dd")]
-            public DateTime Date { get; set; }
-            
+            [JsonProperty(PropertyName = "AcquiredDisposedCode")]
+            public string AcquiredDisposedCode { get; set; }
+
             /// <summary>
             /// The ticker/symbol for the company
             /// </summary>

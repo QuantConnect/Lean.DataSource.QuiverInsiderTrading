@@ -15,12 +15,10 @@
 */
 
 using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using NodaTime;
 using QuantConnect.Data;
-using QuantConnect.Data.UniverseSelection;
+using QuantConnect.Orders;
 using static QuantConnect.StringExtensions;
 
 namespace QuantConnect.DataSource
@@ -28,35 +26,8 @@ namespace QuantConnect.DataSource
     /// <summary>
     /// Universe Selection helper class for QuiverQuant InsiderTrading dataset
     /// </summary>
-    public class QuiverInsiderTradingUniverse : BaseDataCollection
+    public class QuiverInsiderTradingUniverse : QuiverInsiderTrading
     {
-        private static readonly TimeSpan _period = TimeSpan.FromDays(1);
-
-        /// <summary>
-        /// Name
-        /// </summary>
-        public string Name { get; set; }
-
-        /// <summary>
-        /// Shares amount in transaction
-        /// </summary>
-        public decimal? Shares { get; set; }
-
-        /// <summary>
-        /// PricePerShare of transaction
-        /// </summary>
-        public decimal? PricePerShare { get; set; }
-
-        /// <summary>
-        /// Shares Owned after transcation
-        /// </summary>
-        public decimal? SharesOwnedFollowing { get; set; }
-
-        /// <summary>
-        /// Time the data became available
-        /// </summary>
-        public override DateTime EndTime => Time + _period;
-
         /// <summary>
         /// Return the URL string source of the file. This will be converted to a stream
         /// </summary>
@@ -91,21 +62,19 @@ namespace QuantConnect.DataSource
         public override BaseData Reader(SubscriptionDataConfig config, string line, DateTime date, bool isLiveMode)
         {
             var csv = line.Split(',');
-
-            var shares = csv[3].IfNotNullOrEmpty<decimal?>(s => decimal.Parse(s, NumberStyles.Any, CultureInfo.InvariantCulture));
-            var price = csv[4].IfNotNullOrEmpty<decimal?>(s => decimal.Parse(s, NumberStyles.Any, CultureInfo.InvariantCulture));
-            var sharesAfter = csv[5].IfNotNullOrEmpty<decimal?>(s => decimal.Parse(s, NumberStyles.Any, CultureInfo.InvariantCulture));
+            var price = csv[6].IfNotNullOrEmpty<decimal?>(s => decimal.Parse(s, NumberStyles.Any, CultureInfo.InvariantCulture));
             
             return new QuiverInsiderTradingUniverse
             {
-                Time = date,
-                Name = csv[2],
-                Shares = shares,
-                PricePerShare = price,
-                SharesOwnedFollowing = sharesAfter,
-
                 Symbol = new Symbol(SecurityIdentifier.Parse(csv[0]), csv[1]),
-                Value = price ?? 0
+                Time = date,
+                Value = price ?? 0,
+                Date = Parse.DateTimeExact(csv[2], "yyyyMMdd"),
+                Name = csv[3],
+                Transaction = (OrderDirection)Enum.Parse(typeof(OrderDirection), csv[4]),
+                Shares = csv[5].IfNotNullOrEmpty<decimal?>(s => decimal.Parse(s, NumberStyles.Any, CultureInfo.InvariantCulture)),
+                PricePerShare = price,
+                SharesOwnedFollowing = csv[7].IfNotNullOrEmpty<decimal?>(s => decimal.Parse(s, NumberStyles.Any, CultureInfo.InvariantCulture))
             };
         }
 
@@ -115,10 +84,12 @@ namespace QuantConnect.DataSource
         public override string ToString()
         {
             return Invariant($"{Symbol}({Time}) :: ") +
+                   Invariant($"Date: {Date:yyyyMMdd} ") +
                    Invariant($"Name: {string.Join(';', Name)} ") +
                    Invariant($"Shares: {Shares} ") +
                    Invariant($"PricePerShare: {PricePerShare} ") +
-                   Invariant($"SharesOwnedFollowing: {SharesOwnedFollowing}");
+                   Invariant($"SharesOwnedFollowing: {SharesOwnedFollowing}") +
+                   Invariant($"Transaction: {Transaction}");
         }
 
         /// <summary>
@@ -132,35 +103,12 @@ namespace QuantConnect.DataSource
                 Shares = Shares,
                 PricePerShare = PricePerShare,
                 SharesOwnedFollowing = SharesOwnedFollowing,
+                Transaction = Transaction,
+                Date = Date,
                 Data = Data,
                 Symbol = Symbol,
                 Time = Time,
             };
-        }
-
-        /// <summary>
-        /// Gets the default resolution for this data and security type
-        /// </summary>
-        public override Resolution DefaultResolution()
-        {
-            return Resolution.Daily;
-        }
-
-        /// <summary>
-        /// Gets the supported resolution for this data and security type
-        /// </summary>
-        public override List<Resolution> SupportedResolutions()
-        {
-            return DailyResolution;
-        }
-
-        /// <summary>
-        /// Specifies the data time zone for this data type. This is useful for custom data types
-        /// </summary>
-        /// <returns>The <see cref="T:NodaTime.DateTimeZone" /> of this data type</returns>
-        public override DateTimeZone DataTimeZone()
-        {
-            return TimeZones.Chicago;
         }
     }
 }
