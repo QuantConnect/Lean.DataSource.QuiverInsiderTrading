@@ -340,7 +340,7 @@ namespace QuantConnect.DataProcessing
         private class RawInsiderTrading : QuiverInsiderTrading
         {
             /// <summary>
-            /// AcquiredDisposedCode column. “A” corresponds to a purchase, and “D” corresponds with a sale.
+            /// AcquiredDisposedCode column. "A" corresponds to a purchase, and "D" corresponds with a sale.
             /// </summary>
             [JsonProperty(PropertyName = "AcquiredDisposedCode")]
             public string AcquiredDisposedCode { get; set; }
