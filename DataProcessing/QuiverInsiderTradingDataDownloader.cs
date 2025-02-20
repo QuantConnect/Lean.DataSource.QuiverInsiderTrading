@@ -159,10 +159,19 @@ namespace QuantConnect.DataProcessing
 
                     foreach (var ticker in tickerList)
                     {
+                        var sid = default(SecurityIdentifier);
+                        try
+                        {
+                            sid = SecurityIdentifier.GenerateEquity(ticker, Market.USA, true, mapFileProvider, processDate);
+                        }
+                        catch (Exception)
+                        {
+                            Log.Error($"QuiverInsiderTradingDataDownloader.Run(): Invalid ticker {ticker}. Continuing...");
+                            continue;
+                        }
+
                         symbolsProcessed.Add(ticker);
                         
-                        var sid = SecurityIdentifier.GenerateEquity(ticker, Market.USA, true, mapFileProvider, processDate);
-
                         if (sid.Date == SecurityIdentifier.DefaultDate || sid.ToString().Contains(" 2T")) continue;
 
                         if (!insiderTradingByTicker.TryGetValue(ticker, out var _))
